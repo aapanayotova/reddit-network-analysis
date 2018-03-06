@@ -1,4 +1,5 @@
-## Creating list of number of users who authored at least 5 posts in pairs of subreddits: 
+## Creating list of number of users who authored at least 5 posts in pairs of subreddits 
+## +calculate how many such overlaps are there for each pair (i.e. how many users w/ > 5 posts in each of the subreddit pairs) 
 
 #legacySQL
 SELECT t1.subreddit, t2.subreddit, SUM(1) as NumOverlaps
