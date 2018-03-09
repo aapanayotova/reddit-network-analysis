@@ -1,0 +1,109 @@
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+library(gplots)
+library(xtable)
+library(lubridate)
+library(lsa)
+library(Rtsne)
+
+
+##### Part 1: Load in the data
+
+setwd("C:/toni/Antonia/reddit")
+rawsubredditvecs = read.table("./links000000000000.csv",header=TRUE,sep=",")
+rawsubredditvecs = read.table("./links000000000001.csv",header=TRUE,sep=",")
+rawsubredditvecs = read.table("./links000000000002.csv",header=TRUE,sep=",")
+rawsubredditvecs = read.table("./links000000000003.csv",header=TRUE,sep=",")
+rawsubredditvecs = read.table("./links000000000004.csv",header=TRUE,sep=",")
+rawsubredditvecs = read.table("./links000000000005.csv",header=TRUE,sep=",")
+rawsubredditvecs = read.table("./links000000000006.csv",header=TRUE,sep=",")
+rawsubredditvecs = read.table("./links000000000007.csv",header=TRUE,sep=",")
+rawsubredditvecs = read.table("./links000000000008.csv",header=TRUE,sep=",")
+
+
+##### Part 2: Format and clean data for analysis
+
+castsubredditvecs = dcast(rawsubredditvecs,t1_subreddit~t2_subreddit,FUN="identity",fill=0)
+subredditvecst = as.matrix(castsubredditvecs[,-1])
+rownames(subredditvecst) = castsubredditvecs[,1]
+subredditvecs = t(subredditvecst)
+subredditvecssums = apply(subredditvecs,1,sum)
+subredditvecsnorm = sweep(subredditvecs,1,subredditvecssums,"/")
+subredditvecshellinger=sqrt(subredditvecsnorm)/sqrt(2) # hellinger version
+subredditvecssumscontext = apply(subredditvecs,2,sum)
+contextprobs = subredditvecssumscontext/sum(subredditvecssumscontext)
+subredditvecspmi = log(sweep(subredditvecsnorm,2,contextprobs,"/")) # pmi version
+subredditvecsppmi = subredditvecspmi
+subredditvecsppmi[subredditvecspmi<0] = 0 # ppmi version
+res.pca = prcomp(subredditvecsppmi) # takes ~30min
+subredditvecspca = res.pca$x[,11:2001] # take subreddits mapped onto subset of PCs
+scalar1 <- function(x) {x / sqrt(sum(x^2))} # function to normalize vectors
+subredditvecspcanorm = t(apply(subredditvecspca,1,scalar1))
+entropypreph = subredditvecsnorm*log2(subredditvecsnorm)/log2(ncol(subredditvecsnorm))
+entropyprep = entropypreph; entropyprep[!is.finite(entropypreph)] = 0
+entropyrownorms = 1+apply(entropyprep,1,sum)
+idfrownorms = log2(ncol(subredditvecs)/(1+apply((subredditvecs!=0),1,sum)))
+####HERE
+subredditvecslogentropy = log2(sweep(subredditvecs,1,entropyrownorms,"*")+1)
+subredditvecslogidf = log2(sweep(subredditvecs,1,idfrownorms,"*")+1)
+
+##### Part 3: Analysis of subreddit similarities
+
+## Looking at which subreddits are closest to each other (and combinations of subreddits)
+cursubmat = subredditvecsppmi # works really well
+cursubmat = subredditvecspca # 
+cursubmat = subredditvecsnorm # 
+cursubmat = subredditvecslogentropy # 
+cursubs = c("dataisbeautiful")
+curops = c("+","+")
+findrelsubreddit <- function(cursubs,curops,numret=20) {
+    curvec = 0
+    for(i in 1:length(cursubs)) {
+	    curvec = ifelse(curops[i]=="+",list(curvec + cursubmat[which(rownames(cursubmat)==cursubs[i]),]),list(curvec - cursubmat[which(rownames(cursubmat)==cursubs[i]),]))[[1]]
+    }
+    curclosesubs = cosine(x=curvec,y=t(cursubmat))
+    curclosesubso = order(curclosesubs,decreasing=TRUE)
+#return(head(cbind(rownames(cursubmat)[curclosesubso],curclosesubs[curclosesubso]),numret))
+return(head(curclosesubs[curclosesubso],numret))
+}
+findrelsubreddit(cursubs,curops)
+
+## t-SNE plot of all subreddits
+set.seed(123) # For reproducibility
+#curtsnemat = subredditvecspca[order(subredditvecssums,decreasing=TRUE)[1:500],]
+#curtsnemat = subredditvecsppmi[order(subredditvecssums,decreasing=TRUE)[1:1000],]
+curtsnemat = subredditvecsppmi[order(subredditvecssums,decreasing=TRUE),]
+#rtsne_out = Rtsne(curtsnemat,dims=2,check_duplicates=FALSE,perplexity=30,verbose=TRUE,pca=FALSE)
+rtsne_out = Rtsne(curtsnemat,dims=2,check_duplicates=FALSE,perplexity=50,verbose=TRUE,pca=FALSE)
+png("testtsneplot.png", width=20, height=20,units="in",res=350)
+plot(rtsne_out$Y, t='n', main="BarnesHutSNE")
+text(rtsne_out$Y, labels=rownames(curtsnemat),cex=.5)
+dev.off()
+png("testtsneplot.png", width=40, height=40,units="in",res=350)
+plot(rtsne_out$Y, t='n', main="BarnesHutSNE")
+points(rtsne_out$Y)
+dev.off()
+# k-means clustering for color
+numkgroups = 20
+kmeans_out = kmeans(curtsnemat,centers=numkgroups)
+kmeanscols = c("#442637", "#74d958", "#6242c5", "#d0d149", "#be4cd5", "#619141", "#c44398", "#6fcfaf", "#d95035", "#667ecc", "#c78a41", "#512f75", "#c7ca94", "#ce4a6d", "#90bdd7", "#843a2e", "#c589c9", "#515631", "#c49295", "#466675")
+png("tsneplotlarge.png", width=60, height=60,units="in",res=350)
+plot(rtsne_out$Y, t='n', main="Reddit Subreddits - BarnesHutSNE")
+text(rtsne_out$Y, labels=rownames(curtsnemat),cex=.25,col=kmeanscols[kmeans_out$cluster])
+dev.off()
+
+##### Part 5: Save data for interactive tools
+
+## t-SNE data
+tsnecoords = rtsne_out$Y
+rownames(tsnecoords) = rownames(curtsnemat)
+tsnesizes = subredditvecssums[order(subredditvecssums,decreasing=TRUE)]
+tsnecolors = kmeanscols
+tsneclusters = kmeans_out$cluster
+save(tsnecoords,tsnesizes,tsnecolors,tsneclusters,file="tsnedata.rdata")
+## Subreddit similarity matrix
+subsimmat = subredditvecsppmi
+save(subsimmat,file="subredsimdata.rdata")
