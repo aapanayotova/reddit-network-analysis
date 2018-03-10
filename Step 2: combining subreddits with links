@@ -1,11 +1,15 @@
 ## Creating list of number of users who authored at least 5 posts in pairs of subreddits 
-## +calculate how many such overlaps are there for each pair (i.e. how many users w/ > 5 posts in each of the subreddit pairs) 
+## +calculate how many such overlaps are there for each pair (i.e. how many users w/ 10 posts in each of the subreddit pairs) 
+## Under rank 2292 (authors> 5000 therefore too narrow) ++ last 6 months of 2017
 
 #legacySQL
 SELECT t1.subreddit, t2.subreddit, SUM(1) as NumOverlaps
 FROM (SELECT subreddit, author, COUNT(1) as cnt 
-     FROM (TABLE_QUERY([fh-bigquery:reddit_comments],
-         'table_id CONTAINS "2017_" AND length(table_id) >= 5'))
+     FROM (SELECT * 
+  FROM(TABLE_QUERY([fh-bigquery:reddit_comments],
+         'table_id CONTAINS "2017_" AND length(table_id) >= 5')))
+      WHERE subreddit IN (SELECT subreddit FROM [reddit-analysis-of-subreddits:analysis.users_by_subreddit]
+        WHERE rank_authors<2293)
      GROUP BY subreddit, author HAVING cnt > 10) t1
      
 JOIN (SELECT subreddit, author, COUNT(1) as cnt 
