@@ -46,7 +46,6 @@ entropypreph = subredditvecsnorm*log2(subredditvecsnorm)/log2(ncol(subredditvecs
 entropyprep = entropypreph; entropyprep[!is.finite(entropypreph)] = 0
 entropyrownorms = 1+apply(entropyprep,1,sum)
 idfrownorms = log2(ncol(subredditvecs)/(1+apply((subredditvecs!=0),1,sum)))
-####HERE
 subredditvecslogentropy = log2(sweep(subredditvecs,1,entropyrownorms,"*")+1)
 subredditvecslogidf = log2(sweep(subredditvecs,1,idfrownorms,"*")+1)
 
@@ -87,7 +86,8 @@ plot(rtsne_out$Y, t='n', main="BarnesHutSNE")
 points(rtsne_out$Y)
 dev.off()
 # k-means clustering for color
-numkgroups = 20
+memory.limit(size=56000) #increase memory size for R
+numkgroups = 5
 kmeans_out = kmeans(curtsnemat,centers=numkgroups)
 kmeanscols = c("#442637", "#74d958", "#6242c5", "#d0d149", "#be4cd5", "#619141", "#c44398", "#6fcfaf", "#d95035", "#667ecc", "#c78a41", "#512f75", "#c7ca94", "#ce4a6d", "#90bdd7", "#843a2e", "#c589c9", "#515631", "#c49295", "#466675")
 png("tsneplotlarge.png", width=60, height=60,units="in",res=350)
