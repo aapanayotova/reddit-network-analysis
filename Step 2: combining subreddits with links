@@ -1,7 +1,6 @@
 ## Creating list of number of users who authored at least 5 posts in pairs of subreddits 
 ## +calculate how many such overlaps are there for each pair (i.e. how many users w/ 10 posts in each of the subreddit pairs) 
-## Under rank 2292 (authors> 5000 therefore too narrow) ++ last 6 months of 2017
-
+## Under rank 2292 (authors> 5000 therefore too narrow) 
 #legacySQL
 SELECT t1.subreddit, t2.subreddit, SUM(1) as NumOverlaps
 FROM (SELECT subreddit, author, COUNT(1) as cnt 
