@@ -1,0 +1,25 @@
+** from https://wiki.digitalmethods.net/Dmi/AltRightOpenIntelligenceInitiative 
+**most used words in a in 2017
+**line 6 replace with subreddit of choice - sjwhate; KotakuInAction; MGTOW [my case]
+
+SELECT word, COUNT(*)
+FROM(FLATTEN((
+SELECT SPLIT(LOWER(REGEXP_REPLACE(body, r'[\.\",:()\[\]|\n^]', ' ')), ' ')word
+  FROM(TABLE_QUERY([fh-bigquery:reddit_comments],
+'table_id CONTAINS "2017_" AND length(table_id) >= 5'))
+WHERE subreddit='sjwhate'),word))
+WHERE word NOT IN (
+SELECT word FROM (
+SELECT word, COUNT(*)
+FROM(FLATTEN((
+SELECT SPLIT(LOWER(REGEXP_REPLACE(body, r'[\.\",:()\[\]|\n^]', ' ')), ' ')word
+FROM(TABLE_QUERY([fh-bigquery:reddit_comments],
+'table_id CONTAINS "2017_" AND length(table_id) >= 5'))
+WHERE subreddit IN ('movies', 'politics', 'science')
+),word))
+GROUP EACH BY 1
+ORDER BY 2 DESC
+LIMIT 1000))
+GROUP EACH BY 1
+ORDER BY 2 DESC
+LIMIT 500
