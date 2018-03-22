@@ -1,6 +1,6 @@
 ** from https://wiki.digitalmethods.net/Dmi/AltRightOpenIntelligenceInitiative 
 **most used words in a in 2017
-**line 6 replace with subreddit of choice - sjwhate; KotakuInAction; MGTOW [my case]
+**line 6 replace with subreddit of choice - sjwhate; KotakuInAction; MGTOW; uncensored news [my case]
 
 SELECT word, COUNT(*)
 FROM(FLATTEN((
